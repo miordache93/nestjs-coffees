@@ -1,23 +1,39 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Inject, Param, Patch, Post, Query } from '@nestjs/common';
+import { REQUEST } from '@nestjs/core';
+import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { CoffeesService } from './coffees.service';
 import { CreateCoffeeDto } from './dto/create-coffee.dto';
 import { UpdateCoffeeDto } from './dto/update-coffee.dto';
+import { Request } from 'express';
+import { Public } from 'src/common/decorators/public.decorator';
+import { ParseIntPipe } from './../common/pipes/parse-int.pipe';
+import { Protocol } from 'src/common/decorators/protocol.decorator';
+import { ApiForbiddenResponse, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+@ApiTags('coffees')
 @Controller('coffees')
 export class CoffeesController {
 
-  constructor(private readonly coffeesService: CoffeesService) {}
+  constructor(private readonly coffeesService: CoffeesService,
+    @Inject(REQUEST) private readonly request: Request) {
+    console.log('CoffeesController instatiated')
+  }
 
+  // @SetMetadata('isPublic', true)
+  @Public()
   @Get()
-  findAll(@Query() paginationQuery) {
-    // const { limit, offset } = paginationQuery;
-    return this.coffeesService.findAll();
+  @ApiForbiddenResponse({status: 403, description: 'Forbidden.'})
+  async findAll(@Protocol('https') protocol: string, @Query() paginationQuery: PaginationQueryDto) {
+    // await new Promise(resolve => setTimeout(resolve, 5000));
+    console.log(protocol);
+    return this.coffeesService.findAll(paginationQuery);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: number) {
-    console.log(typeof id);
-    return this.coffeesService.findOne('' + id);
+  // findOne(@Param('id', ParseIntPipe) id: number) { from '@nestjs/common'
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    console.log(id);
+    return this.coffeesService.findOne(id);
   }
 
   @Post()
@@ -33,6 +49,6 @@ export class CoffeesController {
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.coffeesService.remove(id);
+    return this.coffeesService.remove(+id);
   }
 }
